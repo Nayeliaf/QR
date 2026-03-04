@@ -6,37 +6,18 @@
   <title>AKUAI | Check-in</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Playfair+Display:wght@700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
-
-  <!-- QR Scanner (cámara) -->
   <script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
 
   <style>
     :root{
-      --orange:#E07A1F;
-      --orange-2:#C76412;
-      --cream:#F6EFE7;
-      --ink:#111;
-      --muted:#6b6b6b;
-      --card:#fff;
-      --stroke:rgba(0,0,0,.08);
-      --shadow:0 18px 50px rgba(0,0,0,.10);
-      --radius:18px;
-      --green:#1FB56A;
-      --green-2:#159257;
-      --bg:#f7f3ee;
-      --nav:#ffffffcc;
+      --orange:#E07A1F; --orange-2:#C76412; --ink:#111; --muted:#6b6b6b;
+      --card:#fff; --stroke:rgba(0,0,0,.08); --shadow:0 18px 50px rgba(0,0,0,.10);
+      --radius:18px; --green:#1FB56A; --green-2:#159257; --bg:#f7f3ee; --nav:#ffffffcc;
     }
-
     [data-theme="dark"]{
-      --bg:#0e1114;
-      --card:#171b20;
-      --ink:#f2f2f2;
-      --muted:#a8b0ba;
-      --stroke:rgba(255,255,255,.10);
-      --shadow:0 18px 50px rgba(0,0,0,.45);
-      --nav:#171b20cc;
+      --bg:#0e1114; --card:#171b20; --ink:#f2f2f2; --muted:#a8b0ba;
+      --stroke:rgba(255,255,255,.10); --shadow:0 18px 50px rgba(0,0,0,.45); --nav:#171b20cc;
     }
-
     *{ box-sizing:border-box; }
     html,body{ margin:0; height:100%; }
     body{
@@ -47,247 +28,75 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    .app{
-      max-width: 460px;
-      margin: 0 auto;
-      min-height: 100vh;
-      display:flex;
-      flex-direction:column;
-      padding: env(safe-area-inset-top) 14px env(safe-area-inset-bottom) 14px;
-    }
+    .app{ max-width:460px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column;
+      padding: env(safe-area-inset-top) 14px env(safe-area-inset-bottom) 14px; }
 
-    .top{
-      padding: 10px 4px 12px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-    }
-
-    .brand{
-      display:flex; align-items:center; gap:10px;
-    }
-
-    .logo{
-      width:46px; height:46px; border-radius:14px;
-      background: linear-gradient(135deg, var(--orange), var(--orange-2));
-      display:grid; place-items:center;
-      box-shadow: 0 10px 25px rgba(224,122,31,.25);
-      flex:0 0 auto;
-    }
+    .top{ padding:10px 4px 12px; display:flex; align-items:center; gap:12px; }
+    .brand{ display:flex; align-items:center; gap:10px; }
+    .logo{ width:46px; height:46px; border-radius:14px; background:linear-gradient(135deg,var(--orange),var(--orange-2));
+      display:grid; place-items:center; box-shadow:0 10px 25px rgba(224,122,31,.25); }
     .logo img{ width:32px; height:32px; object-fit:contain; }
-
     .brand strong{ display:block; font-size:14px; }
     .brand span{ display:block; font-size:12px; color:var(--muted); }
 
-    .screen{
-      flex:1;
-      padding-bottom: 76px;
-    }
+    .screen{ flex:1; padding-bottom:76px; }
+    .card{ background:var(--card); border:1px solid var(--stroke); box-shadow:var(--shadow);
+      border-radius:var(--radius); padding:16px; }
 
-    .card{
-      background:var(--card);
-      border:1px solid var(--stroke);
-      box-shadow:var(--shadow);
-      border-radius:var(--radius);
-      padding:16px;
-    }
-
-    h1{
-      font-family:'Playfair Display', serif;
-      font-size:28px;
-      margin: 8px 0 4px;
-      letter-spacing:.2px;
-    }
+    h1{ font-family:'Playfair Display', serif; font-size:28px; margin:8px 0 4px; }
     .sub{ color:var(--muted); margin:0 0 14px; line-height:1.4; }
 
-    .scan-box{
-      border: 2px dashed rgba(31, 181, 106, .55);
-      border-radius: 18px;
-      height: 260px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      padding: 14px;
-      overflow:hidden;
-    }
-    .scan-hint{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      color:var(--muted);
-      font-size:13px;
-      align-items:center;
-      justify-content:center;
-    }
-    .qr-icon{
-      width:58px;height:58px;border-radius:16px;
-      border:1px solid var(--stroke);
-      display:grid;place-items:center;
-      background: rgba(0,0,0,.02);
-    }
+    .scan-box{ border:2px dashed rgba(31,181,106,.55); border-radius:18px; height:260px;
+      display:flex; align-items:center; justify-content:center; text-align:center; padding:14px; overflow:hidden; }
+    .scan-hint{ display:flex; flex-direction:column; gap:10px; color:var(--muted); font-size:13px; align-items:center; }
+    .qr-icon{ width:58px; height:58px; border-radius:16px; border:1px solid var(--stroke);
+      display:grid; place-items:center; background:rgba(0,0,0,.02); }
 
-    .btn{
-      border:none;
-      width:100%;
-      border-radius: 14px;
-      padding: 14px 14px;
-      font-weight:700;
-      font-family:'Montserrat', sans-serif;
-      font-size:15px;
-      cursor:pointer;
-      transition:.2s transform, .2s filter;
-      user-select:none;
-    }
-    .btn:active{ transform: scale(.99); filter: brightness(.97); }
-
-    .btn-primary{
-      margin-top:14px;
-      background: linear-gradient(135deg, var(--orange), var(--orange-2));
-      color:#fff;
-      box-shadow: 0 10px 25px rgba(224,122,31,.22);
-    }
-    .btn-success{
-      background: linear-gradient(135deg, var(--green), var(--green-2));
-      color:#fff;
-      box-shadow: 0 10px 25px rgba(31,181,106,.20);
-    }
-    .btn-ghost{
-      background: transparent;
-      color: var(--ink);
-      border: 1px solid var(--stroke);
-    }
+    .btn{ border:none; width:100%; border-radius:14px; padding:14px; font-weight:700;
+      font-family:'Montserrat', sans-serif; font-size:15px; cursor:pointer; transition:.2s; user-select:none; }
+    .btn:active{ transform:scale(.99); filter:brightness(.97); }
+    .btn-primary{ margin-top:14px; background:linear-gradient(135deg,var(--orange),var(--orange-2)); color:#fff;
+      box-shadow:0 10px 25px rgba(224,122,31,.22); }
+    .btn-success{ background:linear-gradient(135deg,var(--green),var(--green-2)); color:#fff;
+      box-shadow:0 10px 25px rgba(31,181,106,.20); }
+    .btn-ghost{ background:transparent; color:var(--ink); border:1px solid var(--stroke); }
 
     .nav{
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
+      position:fixed; left:50%; transform:translateX(-50%);
       bottom: calc(env(safe-area-inset-bottom) + 10px);
-      width: min(460px, calc(100% - 28px));
-      background: var(--nav);
-      backdrop-filter: blur(10px) saturate(140%);
-      border:1px solid var(--stroke);
-      border-radius: 18px;
-      padding: 10px;
-      display:flex;
-      justify-content:space-between;
-      gap:8px;
-      z-index: 10;
+      width:min(460px, calc(100% - 28px));
+      background:var(--nav); backdrop-filter:blur(10px) saturate(140%);
+      border:1px solid var(--stroke); border-radius:18px; padding:10px;
+      display:flex; justify-content:space-between; gap:8px; z-index:10;
     }
+    .nav button{ flex:1; background:transparent; border:none; padding:10px 8px; border-radius:14px;
+      font-weight:700; font-family:'Montserrat', sans-serif; font-size:12px; color:var(--muted); cursor:pointer; }
+    .nav button.active{ background:rgba(224,122,31,.12); color:var(--orange-2); }
 
-    .nav button{
-      flex:1;
-      background: transparent;
-      border:none;
-      padding: 10px 8px;
-      border-radius: 14px;
-      font-weight:700;
-      font-family:'Montserrat', sans-serif;
-      font-size:12px;
-      color: var(--muted);
-      cursor:pointer;
-    }
-    .nav button.active{
-      background: rgba(224,122,31,.12);
-      color: var(--orange-2);
-    }
+    .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.35);
+      display:none; align-items:center; justify-content:center; padding:16px; z-index:200; }
+    .modal{ width:min(420px,100%); background:var(--card); border:1px solid var(--stroke);
+      box-shadow:var(--shadow); border-radius:22px; padding:16px; position:relative; }
+    .close{ position:absolute; top:10px; right:12px; width:38px; height:38px; border-radius:14px;
+      border:1px solid var(--stroke); background:transparent; color:var(--muted); font-size:18px; cursor:pointer; }
+    .person{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px; padding:14px 8px 8px; }
+    .avatar{ width:92px; height:92px; border-radius:999px; object-fit:cover; border:1px solid var(--stroke);
+      background:rgba(0,0,0,.04); }
+    .name{ font-size:22px; font-weight:800; font-family:'Montserrat', sans-serif; margin:0; }
+    .badge{ display:inline-flex; padding:8px 12px; border-radius:999px; background:rgba(31,181,106,.14);
+      color:var(--green); font-weight:800; font-family:'Montserrat', sans-serif; font-size:12px; border:1px solid rgba(31,181,106,.25); }
 
-    .modal-backdrop{
-      position:fixed;
-      inset:0;
-      background: rgba(0,0,0,.35);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding: 16px;
-      z-index: 200;
-    }
-    .modal{
-      width: min(420px, 100%);
-      background: var(--card);
-      border: 1px solid var(--stroke);
-      box-shadow: var(--shadow);
-      border-radius: 22px;
-      padding: 16px;
-      position: relative;
-    }
-    .close{
-      position:absolute;
-      top:10px; right:12px;
-      width:38px; height:38px;
-      border-radius: 14px;
-      border:1px solid var(--stroke);
-      background: transparent;
-      color: var(--muted);
-      font-size:18px;
-      cursor:pointer;
-    }
-    .person{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      text-align:center;
-      gap:10px;
-      padding: 14px 8px 8px;
-    }
-    .avatar{
-      width:92px; height:92px;
-      border-radius: 999px;
-      object-fit: cover;
-      border: 1px solid var(--stroke);
-      background: rgba(0,0,0,.04);
-    }
-    .name{
-      font-size: 22px;
-      font-weight: 800;
-      font-family:'Montserrat', sans-serif;
-      margin: 0;
-    }
-    .badge{
-      display:inline-flex;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(31,181,106,.14);
-      color: var(--green);
-      font-weight:800;
-      font-family:'Montserrat', sans-serif;
-      font-size: 12px;
-      border: 1px solid rgba(31,181,106,.25);
-    }
-
-    .row{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding: 12px 0;
-      border-bottom: 1px dashed var(--stroke);
-    }
+    .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 0;
+      border-bottom:1px dashed var(--stroke); }
     .row:last-child{ border-bottom:none; }
     .row .left{ display:flex; flex-direction:column; gap:4px; }
     .row .title{ font-weight:800; font-family:'Montserrat', sans-serif; font-size:13px; }
     .row .meta{ color:var(--muted); font-size:12px; }
-
-    .tiny{
-      font-size:12px;
-      color: var(--muted);
-    }
-
+    .tiny{ font-size:12px; color:var(--muted); }
     .hidden{ display:none; }
 
-    #reader{
-      width:100%;
-      height: 260px;
-      border-radius: 18px;
-      overflow:hidden;
-    }
-    .camera-wrap{
-      border: 2px dashed rgba(31, 181, 106, .55);
-      border-radius: 18px;
-      padding: 0;
-      overflow:hidden;
-    }
+    #reader{ width:100%; height:260px; border-radius:18px; overflow:hidden; }
+    .camera-wrap{ border:2px dashed rgba(31,181,106,.55); border-radius:18px; overflow:hidden; }
   </style>
 </head>
 
@@ -295,9 +104,7 @@
   <div class="app" id="app">
     <div class="top">
       <div class="brand">
-        <div class="logo">
-          <img src="isotipopng.png" alt="AKUAI">
-        </div>
+        <div class="logo"><img src="isotipopng.png" alt="AKUAI"></div>
         <div>
           <strong>AKUAI Check-in</strong>
           <span>Escaneo · Registro de entrada</span>
@@ -306,7 +113,6 @@
     </div>
 
     <div class="screen">
-      <!-- SCREEN: SCAN -->
       <section id="screen-scan" class="card">
         <h1>Escáner QR</h1>
         <p class="sub">Escanea el código QR del asistente.</p>
@@ -325,12 +131,9 @@
         <button id="btnStart" class="btn btn-primary">Iniciar escaneo</button>
         <button id="btnStop" class="btn btn-ghost hidden" style="margin-top:10px;">Detener</button>
 
-        <p class="tiny" style="margin-top:12px;">
-          Tip: si no abre la cámara, revisa permisos del navegador.
-        </p>
+        <p class="tiny" style="margin-top:12px;">Tip: si no abre la cámara, revisa permisos del navegador.</p>
       </section>
 
-      <!-- SCREEN: HISTORY -->
       <section id="screen-history" class="card hidden">
         <h1>Historial de Entradas</h1>
         <p class="sub"><span id="count">0</span> registros encontrados</p>
@@ -338,7 +141,6 @@
         <button id="btnClear" class="btn btn-ghost" style="margin-top:12px;">Limpiar historial (este teléfono)</button>
       </section>
 
-      <!-- SCREEN: SETTINGS -->
       <section id="screen-settings" class="card hidden">
         <h1>Configuración</h1>
         <p class="sub">Personaliza tu experiencia</p>
@@ -360,7 +162,6 @@
       </section>
     </div>
 
-    <!-- Bottom nav -->
     <div class="nav">
       <button id="tabScan" class="active">Escanear</button>
       <button id="tabHistory">Historial</button>
@@ -368,7 +169,6 @@
     </div>
   </div>
 
-  <!-- Modal -->
   <div class="modal-backdrop" id="modalBackdrop">
     <div class="modal">
       <button class="close" id="modalClose">×</button>
@@ -380,21 +180,16 @@
       </div>
 
       <button id="btnRegister" class="btn btn-success">Registrar Entrada</button>
-      <button id="btnAlready" class="btn btn-ghost hidden" style="margin-top:10px;">
-        Ya ingresó (ver historial)
-      </button>
+      <button id="btnAlready" class="btn btn-ghost hidden" style="margin-top:10px;">Ya ingresó</button>
 
       <p class="tiny" id="mMsg" style="margin:12px 0 0; text-align:center;"></p>
     </div>
   </div>
 
   <script>
-    // ✅ TU BACKEND DE GOOGLE APPS SCRIPT
-    const API_URL = "https://script.google.com/macros/s/AKfycbymsHayun9HzfFjkTax52l0os_QydejnTGK7Ua6g8dlfeU6Y5WDrzNcO1i0TaGJ87NHjQ/exec";
+    // ✅ TU BACKEND
+    const API_URL = "https://script.google.com/macros/s/AKfycbw12JsMJdeoVDfVOnju9lzkXqX91PB-_bPuDf8uUbSpiSq-E7pvREofs_6AqH9FlURJQg/exec";
 
-    /***********************
-     * Helpers para foto (Drive -> link directo)
-     ***********************/
     const PLACEHOLDER_AVATAR = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">
         <rect width="120" height="120" fill="#f2f2f2"/>
@@ -406,85 +201,58 @@
     function toDriveDirectUrl(value){
       if(!value) return "";
       const first = String(value).split(",")[0].trim();
-
-      const idMatch =
-        first.match(/id=([a-zA-Z0-9_-]+)/) ||
-        first.match(/\/d\/([a-zA-Z0-9_-]+)/);
-
+      const idMatch = first.match(/id=([a-zA-Z0-9_-]+)/) || first.match(/\/d\/([a-zA-Z0-9_-]+)/);
       if(!idMatch) return first;
       const fileId = idMatch[1];
       return `https://drive.google.com/uc?export=view&id=${fileId}`;
     }
 
-    /***********************
-     * Backend calls
-     ***********************/
     async function getAttendeeByCode(code){
       const url = `${API_URL}?action=lookup&code=${encodeURIComponent(code)}`;
       const res = await fetch(url);
       const data = await res.json();
-
       if(!data.ok) return null;
 
       return {
         code: data.code || code,
         name: data.name || "",
         category: data.category || "",
-        photo: toDriveDirectUrl(data.photo || "")
+        photo: toDriveDirectUrl(data.photo || ""),
+        checked_in: !!data.checked_in,
+        checked_at: data.checked_at || ""
       };
     }
 
     async function registerCheckin(code){
-      // ✅ POST "form-urlencoded" (evita problemas)
       const body = new URLSearchParams({ action: "checkin", code });
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
         body
       });
-
-      // El backend puede no devolver JSON en algunos casos; lo intentamos
       const text = await res.text();
-      try { return JSON.parse(text); } catch { return { ok: true, raw: text }; }
+      try { return JSON.parse(text); } catch { return { ok:true, raw:text }; }
     }
 
-    /***********************
-     * Storage helpers (historial local)
-     ***********************/
-    const LS_ENTRIES = "akuai_entries_v2";
+    // Historial local (por teléfono)
+    const LS_ENTRIES = "akuai_entries_v3";
     const LS_THEME = "akuai_theme_v1";
 
-    function loadEntries(){
-      try { return JSON.parse(localStorage.getItem(LS_ENTRIES) || "[]"); }
-      catch { return []; }
-    }
-    function saveEntries(entries){
-      localStorage.setItem(LS_ENTRIES, JSON.stringify(entries));
-    }
-    function alreadyCheckedInLocal(code){
-      return loadEntries().some(e => e.code === code);
-    }
+    function loadEntries(){ try { return JSON.parse(localStorage.getItem(LS_ENTRIES) || "[]"); } catch { return []; } }
+    function saveEntries(entries){ localStorage.setItem(LS_ENTRIES, JSON.stringify(entries)); }
+    function alreadyCheckedInLocal(code){ return loadEntries().some(e => e.code === code); }
     function saveEntryLocal(att){
       const entries = loadEntries();
-      const now = new Date();
-      entries.unshift({
-        code: att.code,
-        name: att.name,
-        category: att.category,
-        ts: now.toISOString(),
-      });
+      entries.unshift({ code:att.code, name:att.name, category:att.category, ts:new Date().toISOString() });
       saveEntries(entries);
     }
 
-    /***********************
-     * UI: tabs
-     ***********************/
+    // Tabs
     const screens = {
       scan: document.getElementById("screen-scan"),
       history: document.getElementById("screen-history"),
       settings: document.getElementById("screen-settings"),
     };
-
     const tabs = {
       scan: document.getElementById("tabScan"),
       history: document.getElementById("tabHistory"),
@@ -501,38 +269,26 @@
       if(key === "history") renderHistory();
       if(key !== "scan") stopScanner();
     }
-
     tabs.scan.addEventListener("click", () => setActiveTab("scan"));
     tabs.history.addEventListener("click", () => setActiveTab("history"));
     tabs.settings.addEventListener("click", () => setActiveTab("settings"));
 
-    /***********************
-     * Theme
-     ***********************/
+    // Theme
     const darkLabel = document.getElementById("darkLabel");
     const toggleTheme = document.getElementById("toggleTheme");
 
     function applyTheme(theme){
-      if(theme === "dark"){
-        document.documentElement.setAttribute("data-theme", "dark");
-        darkLabel.textContent = "Activado";
-      } else {
-        document.documentElement.removeAttribute("data-theme");
-        darkLabel.textContent = "Desactivado";
-      }
+      if(theme === "dark"){ document.documentElement.setAttribute("data-theme","dark"); darkLabel.textContent="Activado"; }
+      else { document.documentElement.removeAttribute("data-theme"); darkLabel.textContent="Desactivado"; }
       localStorage.setItem(LS_THEME, theme);
     }
-
     toggleTheme.addEventListener("click", () => {
       const current = localStorage.getItem(LS_THEME) || "light";
       applyTheme(current === "dark" ? "light" : "dark");
     });
-
     applyTheme(localStorage.getItem(LS_THEME) || "light");
 
-    /***********************
-     * History render
-     ***********************/
+    // History UI
     const historyList = document.getElementById("historyList");
     const count = document.getElementById("count");
     document.getElementById("btnClear").addEventListener("click", () => {
@@ -550,16 +306,18 @@
       return `${hh}:${mi} · ${dd}/${mm}/${yy}`;
     }
 
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+    }
+
     function renderHistory(){
       const entries = loadEntries();
       count.textContent = entries.length;
       historyList.innerHTML = "";
-
       if(entries.length === 0){
         historyList.innerHTML = `<p class="tiny">Aún no hay entradas registradas en este teléfono.</p>`;
         return;
       }
-
       for(const e of entries){
         const row = document.createElement("div");
         row.className = "row";
@@ -574,15 +332,7 @@
       }
     }
 
-    function escapeHtml(str){
-      return String(str).replace(/[&<>"']/g, m => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-      }[m]));
-    }
-
-    /***********************
-     * Modal
-     ***********************/
+    // Modal
     const modalBackdrop = document.getElementById("modalBackdrop");
     const modalClose = document.getElementById("modalClose");
     const mAvatar = document.getElementById("mAvatar");
@@ -600,13 +350,22 @@
       mAvatar.src = att.photo || PLACEHOLDER_AVATAR;
       mName.textContent = att.name || "—";
       mCat.textContent = att.category || "—";
-      mMsg.textContent = "";
 
+      const isDupGlobal = !!att.checked_in;
       const isDupLocal = alreadyCheckedInLocal(att.code);
-      btnRegister.classList.toggle("hidden", isDupLocal);
-      btnAlready.classList.toggle("hidden", !isDupLocal);
+      const isDup = isDupGlobal || isDupLocal;
 
-      if(isDupLocal) mMsg.textContent = "Este QR ya fue registrado en este teléfono.";
+      btnRegister.classList.toggle("hidden", isDup);
+      btnAlready.classList.toggle("hidden", !isDup);
+
+      if(isDupGlobal){
+        mMsg.textContent = "✅ Ya ingresó" + (att.checked_at ? (" · " + String(att.checked_at)) : "");
+      } else if(isDupLocal){
+        mMsg.textContent = "✅ Ya registrado en este teléfono.";
+      } else {
+        mMsg.textContent = "";
+      }
+
       modalBackdrop.style.display = "flex";
     }
 
@@ -616,9 +375,7 @@
     }
 
     modalClose.addEventListener("click", closeModal);
-    modalBackdrop.addEventListener("click", (e) => {
-      if(e.target === modalBackdrop) closeModal();
-    });
+    modalBackdrop.addEventListener("click", (e) => { if(e.target === modalBackdrop) closeModal(); });
 
     btnAlready.addEventListener("click", () => {
       closeModal();
@@ -634,25 +391,29 @@
       try{
         const result = await registerCheckin(currentAttendee.code);
 
-        // Guardamos en historial local para mostrar lista
+        if(result?.ok && result?.status === "duplicate"){
+          mMsg.textContent = "✅ Ya ingresó (duplicado).";
+          btnRegister.classList.add("hidden");
+          btnAlready.classList.remove("hidden");
+          return;
+        }
+
         saveEntryLocal(currentAttendee);
 
         mMsg.textContent = "✅ Entrada registrada.";
         btnRegister.classList.add("hidden");
         btnAlready.classList.remove("hidden");
 
-        setTimeout(() => closeModal(), 800);
+        setTimeout(closeModal, 800);
       } catch (err){
-        mMsg.textContent = "❌ Error registrando. Revisa conexión.";
         console.error(err);
+        mMsg.textContent = "❌ Error registrando. Revisa conexión.";
       } finally {
         btnRegister.disabled = false;
       }
     });
 
-    /***********************
-     * Scanner
-     ***********************/
+    // Scanner
     const btnStart = document.getElementById("btnStart");
     const btnStop = document.getElementById("btnStop");
     const scanIdle = document.getElementById("scanIdle");
@@ -674,12 +435,12 @@
 
       try{
         await html5Qr.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 220, height: 220 } },
+          { facingMode:"environment" },
+          { fps:10, qrbox:{ width:220, height:220 } },
           (decodedText) => { handleScan(decodedText); },
           () => {}
         );
-      }catch(err){
+      } catch(err){
         scanning = false;
         btnStart.classList.remove("hidden");
         btnStop.classList.add("hidden");
@@ -717,7 +478,6 @@
       const now = Date.now();
       const code = String(text).trim();
 
-      // anti spam
       if(code === lastScan && (now - lastScanAt) < 1500) return;
       lastScan = code; lastScanAt = now;
 
