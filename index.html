@@ -47,7 +47,6 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* App shell */
     .app{
       max-width: 460px;
       margin: 0 auto;
@@ -83,7 +82,7 @@
 
     .screen{
       flex:1;
-      padding-bottom: 76px; /* space for bottom nav */
+      padding-bottom: 76px;
     }
 
     .card{
@@ -102,7 +101,6 @@
     }
     .sub{ color:var(--muted); margin:0 0 14px; line-height:1.4; }
 
-    /* Scanner UI */
     .scan-box{
       border: 2px dashed rgba(31, 181, 106, .55);
       border-radius: 18px;
@@ -112,7 +110,6 @@
       justify-content:center;
       text-align:center;
       padding: 14px;
-      position: relative;
       overflow:hidden;
     }
     .scan-hint{
@@ -162,7 +159,6 @@
       border: 1px solid var(--stroke);
     }
 
-    /* Bottom nav */
     .nav{
       position: fixed;
       left: 50%;
@@ -177,6 +173,7 @@
       display:flex;
       justify-content:space-between;
       gap:8px;
+      z-index: 10;
     }
 
     .nav button{
@@ -196,7 +193,6 @@
       color: var(--orange-2);
     }
 
-    /* Modal */
     .modal-backdrop{
       position:fixed;
       inset:0;
@@ -260,7 +256,6 @@
       border: 1px solid rgba(31,181,106,.25);
     }
 
-    /* List */
     .row{
       display:flex;
       align-items:center;
@@ -279,10 +274,8 @@
       color: var(--muted);
     }
 
-    /* Hide screens */
     .hidden{ display:none; }
 
-    /* Camera region */
     #reader{
       width:100%;
       height: 260px;
@@ -396,25 +389,69 @@
   </div>
 
   <script>
-    /***********************
-     * Demo DB (reemplazar por backend)
-     * El QR debería contener un "code" único, ej: AKUAI-0001
-     ***********************/
-    const DEMO_DB = new Map([
-      ["AKUAI-0001", { code:"AKUAI-0001", name:"Maria Clara Sarmiento Bonilla", category:"Ponente", photo:"https://i.pravatar.cc/256?img=47" }],
-      ["AKUAI-0002", { code:"AKUAI-0002", name:"José Uzcátegui", category:"Invitado Especial", photo:"https://i.pravatar.cc/256?img=12" }],
-      ["AKUAI-0003", { code:"AKUAI-0003", name:"Naye", category:"Público General", photo:"https://i.pravatar.cc/256?img=5" }],
-    ]);
+    // ✅ TU BACKEND DE GOOGLE APPS SCRIPT
+    const API_URL = "https://script.google.com/macros/s/AKfycbymsHayun9HzfFjkTax52l0os_QydejnTGK7Ua6g8dlfeU6Y5WDrzNcO1i0TaGJ87NHjQ/exec";
 
-    function getAttendeeByCode(code){
-      // TODO: fetch(`/api/attendees/${encodeURIComponent(code)}`)
-      return DEMO_DB.get(code) || null;
+    /***********************
+     * Helpers para foto (Drive -> link directo)
+     ***********************/
+    const PLACEHOLDER_AVATAR = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">
+        <rect width="120" height="120" fill="#f2f2f2"/>
+        <circle cx="60" cy="46" r="22" fill="#d7d7d7"/>
+        <rect x="26" y="74" width="68" height="34" rx="17" fill="#d7d7d7"/>
+      </svg>
+    `);
+
+    function toDriveDirectUrl(value){
+      if(!value) return "";
+      const first = String(value).split(",")[0].trim();
+
+      const idMatch =
+        first.match(/id=([a-zA-Z0-9_-]+)/) ||
+        first.match(/\/d\/([a-zA-Z0-9_-]+)/);
+
+      if(!idMatch) return first;
+      const fileId = idMatch[1];
+      return `https://drive.google.com/uc?export=view&id=${fileId}`;
     }
 
     /***********************
-     * Storage helpers
+     * Backend calls
      ***********************/
-    const LS_ENTRIES = "akuai_entries_v1";
+    async function getAttendeeByCode(code){
+      const url = `${API_URL}?action=lookup&code=${encodeURIComponent(code)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if(!data.ok) return null;
+
+      return {
+        code: data.code || code,
+        name: data.name || "",
+        category: data.category || "",
+        photo: toDriveDirectUrl(data.photo || "")
+      };
+    }
+
+    async function registerCheckin(code){
+      // ✅ POST "form-urlencoded" (evita problemas)
+      const body = new URLSearchParams({ action: "checkin", code });
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        body
+      });
+
+      // El backend puede no devolver JSON en algunos casos; lo intentamos
+      const text = await res.text();
+      try { return JSON.parse(text); } catch { return { ok: true, raw: text }; }
+    }
+
+    /***********************
+     * Storage helpers (historial local)
+     ***********************/
+    const LS_ENTRIES = "akuai_entries_v2";
     const LS_THEME = "akuai_theme_v1";
 
     function loadEntries(){
@@ -424,10 +461,10 @@
     function saveEntries(entries){
       localStorage.setItem(LS_ENTRIES, JSON.stringify(entries));
     }
-    function alreadyCheckedIn(code){
+    function alreadyCheckedInLocal(code){
       return loadEntries().some(e => e.code === code);
     }
-    function saveEntry(att){
+    function saveEntryLocal(att){
       const entries = loadEntries();
       const now = new Date();
       entries.unshift({
@@ -462,7 +499,7 @@
       tabs[key].classList.add("active");
 
       if(key === "history") renderHistory();
-      if(key !== "scan") stopScanner(); // para no dejar cámara prendida
+      if(key !== "scan") stopScanner();
     }
 
     tabs.scan.addEventListener("click", () => setActiveTab("scan"));
@@ -472,7 +509,6 @@
     /***********************
      * Theme
      ***********************/
-    const app = document.getElementById("app");
     const darkLabel = document.getElementById("darkLabel");
     const toggleTheme = document.getElementById("toggleTheme");
 
@@ -506,7 +542,6 @@
 
     function fmt(ts){
       const d = new Date(ts);
-      // formato simple dd/mm/yyyy hh:mm
       const dd = String(d.getDate()).padStart(2,"0");
       const mm = String(d.getMonth()+1).padStart(2,"0");
       const yy = d.getFullYear();
@@ -561,16 +596,17 @@
 
     function openModal(att){
       currentAttendee = att;
-      mAvatar.src = att.photo || "";
+
+      mAvatar.src = att.photo || PLACEHOLDER_AVATAR;
       mName.textContent = att.name || "—";
       mCat.textContent = att.category || "—";
       mMsg.textContent = "";
 
-      const isDup = alreadyCheckedIn(att.code);
-      btnRegister.classList.toggle("hidden", isDup);
-      btnAlready.classList.toggle("hidden", !isDup);
+      const isDupLocal = alreadyCheckedInLocal(att.code);
+      btnRegister.classList.toggle("hidden", isDupLocal);
+      btnAlready.classList.toggle("hidden", !isDupLocal);
 
-      if(isDup) mMsg.textContent = "Este QR ya fue registrado en este teléfono.";
+      if(isDupLocal) mMsg.textContent = "Este QR ya fue registrado en este teléfono.";
       modalBackdrop.style.display = "flex";
     }
 
@@ -589,20 +625,29 @@
       setActiveTab("history");
     });
 
-    btnRegister.addEventListener("click", () => {
+    btnRegister.addEventListener("click", async () => {
       if(!currentAttendee) return;
 
-      // TODO: aquí deberías hacer POST a tu backend y validar duplicados globales
-      saveEntry(currentAttendee);
+      btnRegister.disabled = true;
+      mMsg.textContent = "Registrando...";
 
-      mMsg.textContent = "✅ Entrada registrada.";
-      btnRegister.classList.add("hidden");
-      btnAlready.classList.remove("hidden");
+      try{
+        const result = await registerCheckin(currentAttendee.code);
 
-      // opcional: cerrar modal rápido
-      setTimeout(() => {
-        closeModal();
-      }, 800);
+        // Guardamos en historial local para mostrar lista
+        saveEntryLocal(currentAttendee);
+
+        mMsg.textContent = "✅ Entrada registrada.";
+        btnRegister.classList.add("hidden");
+        btnAlready.classList.remove("hidden");
+
+        setTimeout(() => closeModal(), 800);
+      } catch (err){
+        mMsg.textContent = "❌ Error registrando. Revisa conexión.";
+        console.error(err);
+      } finally {
+        btnRegister.disabled = false;
+      }
     });
 
     /***********************
@@ -631,10 +676,7 @@
         await html5Qr.start(
           { facingMode: "environment" },
           { fps: 10, qrbox: { width: 220, height: 220 } },
-          (decodedText) => {
-            // Ej: decodedText = "AKUAI-0001"
-            handleScan(decodedText);
-          },
+          (decodedText) => { handleScan(decodedText); },
           () => {}
         );
       }catch(err){
@@ -669,27 +711,34 @@
 
     let lastScan = "";
     let lastScanAt = 0;
+    let scanLock = false;
 
-    function handleScan(text){
+    async function handleScan(text){
       const now = Date.now();
       const code = String(text).trim();
 
-      // anti-spam: evita disparar el modal 20 veces seguidas
+      // anti spam
       if(code === lastScan && (now - lastScanAt) < 1500) return;
       lastScan = code; lastScanAt = now;
 
-      const att = getAttendeeByCode(code);
-      if(!att){
-        alert("QR no válido / no encontrado: " + code);
-        return;
+      if(scanLock) return;
+      scanLock = true;
+
+      try{
+        const att = await getAttendeeByCode(code);
+        if(!att){
+          alert("QR no válido / no encontrado: " + code);
+          return;
+        }
+        openModal(att);
+      } finally {
+        setTimeout(()=>{ scanLock = false; }, 900);
       }
-      openModal(att);
     }
 
     btnStart.addEventListener("click", startScanner);
     btnStop.addEventListener("click", stopScanner);
 
-    // Arranque
     setActiveTab("scan");
   </script>
 </body>
