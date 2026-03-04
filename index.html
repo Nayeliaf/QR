@@ -97,6 +97,24 @@
 
     #reader{ width:100%; height:260px; border-radius:18px; overflow:hidden; }
     .camera-wrap{ border:2px dashed rgba(31,181,106,.55); border-radius:18px; overflow:hidden; }
+
+    /* estado "ya ingresó" */
+    .status-ok{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 12px;
+      border-radius:14px;
+      background: rgba(31,181,106,.14);
+      border: 1px solid rgba(31,181,106,.25);
+      color: var(--green);
+      font-weight:800;
+      font-family:'Montserrat', sans-serif;
+      font-size:12px;
+      margin-top:10px;
+      justify-content:center;
+      width:100%;
+    }
   </style>
 </head>
 
@@ -131,7 +149,9 @@
         <button id="btnStart" class="btn btn-primary">Iniciar escaneo</button>
         <button id="btnStop" class="btn btn-ghost hidden" style="margin-top:10px;">Detener</button>
 
-        <p class="tiny" style="margin-top:12px;">Tip: si no abre la cámara, revisa permisos del navegador.</p>
+        <p class="tiny" style="margin-top:12px;">
+          Tip: abre esto en <b>Chrome/Safari</b> (no desde WhatsApp/IG) y permite la cámara.
+        </p>
       </section>
 
       <section id="screen-history" class="card hidden">
@@ -156,7 +176,7 @@
         <div class="row">
           <div class="left">
             <div class="title">Acerca de</div>
-            <div class="meta">AKUAI Check-in · Versión 1.0.0</div>
+            <div class="meta">AKUAI Check-in · Versión 1.0.1</div>
           </div>
         </div>
       </section>
@@ -177,19 +197,21 @@
         <img class="avatar" id="mAvatar" alt="Foto" />
         <p class="name" id="mName">—</p>
         <div class="badge" id="mCat">—</div>
+        <div id="mStatus" class="status-ok hidden">✅ Ya ingresó</div>
       </div>
 
       <button id="btnRegister" class="btn btn-success">Registrar Entrada</button>
-      <button id="btnAlready" class="btn btn-ghost hidden" style="margin-top:10px;">Ya ingresó</button>
+      <button id="btnAlready" class="btn btn-ghost hidden" style="margin-top:10px;">Ver historial</button>
 
       <p class="tiny" id="mMsg" style="margin:12px 0 0; text-align:center;"></p>
     </div>
   </div>
 
   <script>
-    // ✅ TU BACKEND
-    const API_URL = "https://script.google.com/macros/s/AKfycbw12JsMJdeoVDfVOnju9lzkXqX91PB-_bPuDf8uUbSpiSq-E7pvREofs_6AqH9FlURJQg/exec";
+    // ✅ TU BACKEND (Apps Script)
+    const API_URL = "https://script.google.com/macros/s/AKfycbymsHayun9HzfFjkTax52l0os_QydejnTGK7Ua6g8dlfeU6Y5WDrzNcO1i0TaGJ87NHjQ/exec";
 
+    // Placeholder para foto si no carga
     const PLACEHOLDER_AVATAR = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">
         <rect width="120" height="120" fill="#f2f2f2"/>
@@ -234,10 +256,9 @@
       try { return JSON.parse(text); } catch { return { ok:true, raw:text }; }
     }
 
-    // Historial local (por teléfono)
-    const LS_ENTRIES = "akuai_entries_v3";
+    // Historial local
+    const LS_ENTRIES = "akuai_entries_v4";
     const LS_THEME = "akuai_theme_v1";
-
     function loadEntries(){ try { return JSON.parse(localStorage.getItem(LS_ENTRIES) || "[]"); } catch { return []; } }
     function saveEntries(entries){ localStorage.setItem(LS_ENTRIES, JSON.stringify(entries)); }
     function alreadyCheckedInLocal(code){ return loadEntries().some(e => e.code === code); }
@@ -276,7 +297,6 @@
     // Theme
     const darkLabel = document.getElementById("darkLabel");
     const toggleTheme = document.getElementById("toggleTheme");
-
     function applyTheme(theme){
       if(theme === "dark"){ document.documentElement.setAttribute("data-theme","dark"); darkLabel.textContent="Activado"; }
       else { document.documentElement.removeAttribute("data-theme"); darkLabel.textContent="Desactivado"; }
@@ -288,7 +308,7 @@
     });
     applyTheme(localStorage.getItem(LS_THEME) || "light");
 
-    // History UI
+    // History
     const historyList = document.getElementById("historyList");
     const count = document.getElementById("count");
     document.getElementById("btnClear").addEventListener("click", () => {
@@ -339,6 +359,7 @@
     const mName = document.getElementById("mName");
     const mCat = document.getElementById("mCat");
     const mMsg = document.getElementById("mMsg");
+    const mStatus = document.getElementById("mStatus");
     const btnRegister = document.getElementById("btnRegister");
     const btnAlready = document.getElementById("btnAlready");
 
@@ -354,6 +375,8 @@
       const isDupGlobal = !!att.checked_in;
       const isDupLocal = alreadyCheckedInLocal(att.code);
       const isDup = isDupGlobal || isDupLocal;
+
+      mStatus.classList.toggle("hidden", !isDupGlobal);
 
       btnRegister.classList.toggle("hidden", isDup);
       btnAlready.classList.toggle("hidden", !isDup);
@@ -392,6 +415,7 @@
         const result = await registerCheckin(currentAttendee.code);
 
         if(result?.ok && result?.status === "duplicate"){
+          mStatus.classList.remove("hidden");
           mMsg.textContent = "✅ Ya ingresó (duplicado).";
           btnRegister.classList.add("hidden");
           btnAlready.classList.remove("hidden");
@@ -431,7 +455,12 @@
       btnStart.classList.add("hidden");
       btnStop.classList.remove("hidden");
 
-      html5Qr = new Html5Qrcode("reader");
+      // iOS/Android: esto mejora compatibilidad
+      try{
+        html5Qr = new Html5Qrcode("reader", { formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ] });
+      } catch {
+        html5Qr = new Html5Qrcode("reader");
+      }
 
       try{
         await html5Qr.start(
@@ -446,7 +475,7 @@
         btnStop.classList.add("hidden");
         scanLive.classList.add("hidden");
         scanIdle.classList.remove("hidden");
-        alert("No se pudo abrir la cámara. Revisa permisos del navegador.");
+        alert("Error cámara: " + (err?.message || err));
         console.error(err);
       }
     }
