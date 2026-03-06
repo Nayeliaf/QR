@@ -68,8 +68,14 @@
         cameraId,
         {
           fps: 10,
-          qrbox: { width: 220, height: 220 },
-          aspectRatio: 1.333333
+          aspectRatio: 1,
+          qrbox: function (viewfinderWidth, viewfinderHeight) {
+            const edge = Math.min(viewfinderWidth, viewfinderHeight) * 0.7;
+            return {
+              width: edge,
+              height: edge
+            };
+          }
         },
         async (decodedText) => {
           const now = Date.now();
