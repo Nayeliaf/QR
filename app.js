@@ -200,20 +200,34 @@
     scanLive.classList.remove("hidden");
     btnStart.classList.add("hidden");
     btnStop.classList.remove("hidden");
+    camStatus.textContent = "Preparando cámara...";
 
     try {
       await qrScanner.start(handleScan, (msg) => {
         camStatus.textContent = msg;
       });
-    } catch {
-      camStatus.textContent = "❌ No se pudo abrir la cámara";
-      await stopScannerUI();
+    } catch (err) {
+      const msg = String(err?.message || err || "");
+
+      if (msg.toLowerCase().includes("permission")) {
+        camStatus.textContent = "❌ Permiso de cámara denegado.";
+      } else if (msg.toLowerCase().includes("secure")) {
+        camStatus.textContent = "❌ La cámara necesita localhost o HTTPS.";
+      } else if (msg.toLowerCase().includes("notfound")) {
+        camStatus.textContent = "❌ No se encontró ninguna cámara.";
+      } else {
+        camStatus.textContent = "❌ No se pudo abrir la cámara.";
+      }
+
+      await stopScannerUI(false);
     }
   }
 
-  async function stopScannerUI() {
+  async function stopScannerUI(clearMessage = true) {
     scannerActive = false;
-    camStatus.textContent = "";
+    if (clearMessage) {
+      camStatus.textContent = "";
+    }
     await qrScanner.stop();
     btnStart.classList.remove("hidden");
     btnStop.classList.add("hidden");
@@ -305,7 +319,7 @@
   dangerConfirm.onclick = confirmClearHistory;
 
   btnStart.onclick = startScannerUI;
-  btnStop.onclick = stopScannerUI;
+  btnStop.onclick = () => stopScannerUI(true);
   btnRegister.onclick = registerCurrent;
   btnManualSearch.onclick = handleManualSearch;
 
