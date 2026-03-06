@@ -112,6 +112,38 @@
       color: var(--red); font-weight:800; font-family:'Montserrat', sans-serif; font-size:12px;
       margin-top:10px; justify-content:center; width:100%;
     }
+
+    .manual-box{
+      margin-top:12px;
+      display:flex;
+      gap:8px;
+      flex-direction:column;
+    }
+    .manual-input{
+      width:100%;
+      padding:12px 14px;
+      border-radius:12px;
+      border:1px solid var(--stroke);
+      background:var(--card);
+      color:var(--ink);
+      font-size:14px;
+      outline:none;
+    }
+    .manual-input:focus{
+      border-color:rgba(224,122,31,.55);
+      box-shadow:0 0 0 4px rgba(224,122,31,.10);
+    }
+    .danger-copy{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:flex-start;
+      text-align:left;
+      padding:8px 0 4px;
+    }
+    .danger-copy .name{
+      font-size:24px;
+    }
   </style>
 </head>
 
@@ -121,14 +153,13 @@
       <div class="brand">
         <div class="logo"><img src="isotipopng.png" alt="AKUAI"></div>
         <div>
-          <strong>AKUAI Check-in</strong>
-          <span>Escaneo · Registro de entrada</span>
+          <strong id="brandTitle">AKUAI Check-in</strong>
+          <span id="brandSubtitle">Escaneo · Registro de entrada</span>
         </div>
       </div>
     </div>
 
     <div class="screen">
-      <!-- SCAN -->
       <section id="screen-scan" class="card">
         <h1>Escáner QR</h1>
         <p class="sub">Escanea el código QR del asistente.</p>
@@ -147,22 +178,25 @@
         <button id="btnStart" class="btn btn-primary">Iniciar escaneo</button>
         <button id="btnStop" class="btn btn-ghost hidden" style="margin-top:10px;">Detener</button>
 
+        <div class="manual-box">
+          <input id="manualCode" class="manual-input" type="text" placeholder="Ej: AKUAI-0001">
+          <button id="btnManualSearch" class="btn btn-ghost">Probar código manual</button>
+        </div>
+
         <p class="tiny" id="camStatus" style="margin-top:10px;"></p>
 
         <p class="tiny" style="margin-top:12px;">
-          Tip: abre esto en <b>Chrome/Safari</b> (no desde WhatsApp/IG) y permite la cámara.
+          Tip: abre esto en <b>Chrome/Safari</b> y permite la cámara.
         </p>
       </section>
 
-      <!-- HISTORY -->
       <section id="screen-history" class="card hidden">
         <h1>Historial (este teléfono)</h1>
         <p class="sub"><span id="count">0</span> registros encontrados</p>
         <div id="historyList"></div>
-        <button id="btnClear" class="btn btn-ghost" style="margin-top:12px;">Limpiar historial</button>
+        <button id="btnClear" class="btn btn-danger" style="margin-top:12px;">Borrar historial local</button>
       </section>
 
-      <!-- SETTINGS -->
       <section id="screen-settings" class="card hidden">
         <h1>Configuración</h1>
         <p class="sub">Personaliza tu experiencia</p>
@@ -178,7 +212,7 @@
         <div class="row">
           <div class="left">
             <div class="title">Acerca de</div>
-            <div class="meta">AKUAI Check-in · Versión 1.1</div>
+            <div class="meta" id="aboutVersion">AKUAI Check-in · Versión 1.0</div>
           </div>
         </div>
       </section>
@@ -191,7 +225,6 @@
     </div>
   </div>
 
-  <!-- MODAL -->
   <div class="modal-backdrop" id="modalBackdrop">
     <div class="modal">
       <button class="close" id="modalClose">×</button>
@@ -200,6 +233,7 @@
         <img class="avatar" id="mAvatar" alt="Foto" />
         <p class="name" id="mName">—</p>
         <div class="badge" id="mCat">—</div>
+        <div class="tiny" id="mCode">—</div>
 
         <div id="mStatusOk" class="status-ok hidden">✅ Ya ingresó</div>
         <div id="mStatusBad" class="status-bad hidden">❌ No encontrado</div>
@@ -212,330 +246,48 @@
     </div>
   </div>
 
-<script>
-/*** 1) PON AQUÍ TU URL DEL WEB APP (Apps Script) ***/
-const API_URL = "https://script.google.com/macros/s/AKfycbyrqn7825VJua2ONIo5e7ca5lT7v5627Q6Foe2Ejyyro9eMMKUDBlCcLbX0B58_xnR9/exec"; 
-// ejemplo: https://script.google.com/macros/s/XXXXX/exec
+  <div class="modal-backdrop" id="dangerBackdrop">
+    <div class="modal">
+      <button class="close" id="dangerClose">×</button>
 
-const PLACEHOLDER_AVATAR =
-  "data:image/svg+xml;charset=UTF-8," +
-  encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">
-    <rect width="120" height="120" fill="#f2f2f2"/>
-    <circle cx="60" cy="46" r="22" fill="#d7d7d7"/>
-    <rect x="26" y="74" width="68" height="34" rx="17" fill="#d7d7d7"/>
-  </svg>`);
-
-function toDriveDirectUrl(value){
-  if(!value) return "";
-  const first = String(value).split(",")[0].trim();
-  const idMatch = first.match(/id=([a-zA-Z0-9_-]+)/) || first.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  if(!idMatch) return first;
-  return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
-}
-
-async function apiLookup(code){
-  const url = `${API_URL}?action=lookup&code=${encodeURIComponent(code)}`;
-  const res = await fetch(url);
-  return await res.json();
-}
-
-async function apiCheckin(code){
-  const body = new URLSearchParams({ action:"checkin", code });
-  const res = await fetch(API_URL, {
-    method:"POST",
-    headers:{ "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8" },
-    body
-  });
-  const text = await res.text();
-  try { return JSON.parse(text); } catch { return { ok:true, raw:text }; }
-}
-
-// Local history
-const LS_ENTRIES = "akuai_entries_v5";
-const LS_THEME = "akuai_theme_v1";
-
-function loadEntries(){ try { return JSON.parse(localStorage.getItem(LS_ENTRIES) || "[]"); } catch { return []; } }
-function saveEntries(entries){ localStorage.setItem(LS_ENTRIES, JSON.stringify(entries)); }
-function alreadyLocal(code){ return loadEntries().some(e => e.code === code); }
-function addLocal(att){
-  const entries = loadEntries();
-  entries.unshift({ code:att.code, name:att.name, category:att.category, ts:new Date().toISOString() });
-  saveEntries(entries);
-}
-
-// Tabs
-const screens = {
-  scan: document.getElementById("screen-scan"),
-  history: document.getElementById("screen-history"),
-  settings: document.getElementById("screen-settings"),
-};
-const tabs = {
-  scan: document.getElementById("tabScan"),
-  history: document.getElementById("tabHistory"),
-  settings: document.getElementById("tabSettings"),
-};
-
-function setActiveTab(key){
-  Object.values(screens).forEach(s => s.classList.add("hidden"));
-  Object.values(tabs).forEach(t => t.classList.remove("active"));
-  screens[key].classList.remove("hidden");
-  tabs[key].classList.add("active");
-  if(key === "history") renderHistory();
-  if(key !== "scan") stopScanner();
-}
-tabs.scan.onclick = () => setActiveTab("scan");
-tabs.history.onclick = () => setActiveTab("history");
-tabs.settings.onclick = () => setActiveTab("settings");
-
-// Theme
-const darkLabel = document.getElementById("darkLabel");
-const toggleTheme = document.getElementById("toggleTheme");
-function applyTheme(theme){
-  if(theme === "dark"){ document.documentElement.setAttribute("data-theme","dark"); darkLabel.textContent="Activado"; }
-  else { document.documentElement.removeAttribute("data-theme"); darkLabel.textContent="Desactivado"; }
-  localStorage.setItem(LS_THEME, theme);
-}
-toggleTheme.onclick = () => applyTheme((localStorage.getItem(LS_THEME)||"light")==="dark" ? "light" : "dark");
-applyTheme(localStorage.getItem(LS_THEME) || "light");
-
-// History UI
-const historyList = document.getElementById("historyList");
-const count = document.getElementById("count");
-document.getElementById("btnClear").onclick = () => { localStorage.removeItem(LS_ENTRIES); renderHistory(); };
-
-function escapeHtml(str){
-  return String(str).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
-}
-function fmt(ts){
-  const d = new Date(ts);
-  const dd = String(d.getDate()).padStart(2,"0");
-  const mm = String(d.getMonth()+1).padStart(2,"0");
-  const yy = d.getFullYear();
-  const hh = String(d.getHours()).padStart(2,"0");
-  const mi = String(d.getMinutes()).padStart(2,"0");
-  return `${hh}:${mi} · ${dd}/${mm}/${yy}`;
-}
-function renderHistory(){
-  const entries = loadEntries();
-  count.textContent = entries.length;
-  historyList.innerHTML = "";
-  if(entries.length === 0){
-    historyList.innerHTML = `<p class="tiny">Aún no hay entradas registradas en este teléfono.</p>`;
-    return;
-  }
-  for(const e of entries){
-    const row = document.createElement("div");
-    row.className = "row";
-    row.innerHTML = `
-      <div class="left">
-        <div class="title">${escapeHtml(e.name)}</div>
-        <div class="meta">🕒 ${fmt(e.ts)}</div>
+      <div class="danger-copy">
+        <p class="name" style="margin:0;">Borrar historial local</p>
+        <div class="status-bad" style="display:flex;">
+          ⚠️ Esta acción no se puede deshacer
+        </div>
+        <p class="tiny" id="dangerText" style="margin:0;">
+          Se eliminarán todos los registros guardados en este teléfono.
+        </p>
       </div>
-      <div class="badge" style="white-space:nowrap;">${escapeHtml(e.category)}</div>
-    `;
-    historyList.appendChild(row);
-  }
-}
 
-// Modal UI
-const modalBackdrop = document.getElementById("modalBackdrop");
-const modalClose = document.getElementById("modalClose");
-const mAvatar = document.getElementById("mAvatar");
-const mName = document.getElementById("mName");
-const mCat = document.getElementById("mCat");
-const mMsg = document.getElementById("mMsg");
-const mStatusOk = document.getElementById("mStatusOk");
-const mStatusBad = document.getElementById("mStatusBad");
-const btnRegister = document.getElementById("btnRegister");
-const btnAlready = document.getElementById("btnAlready");
+      <div style="margin-top:14px;">
+        <label for="dangerInput" class="tiny" style="display:block; margin-bottom:8px;">
+          Escribe <b>BORRAR</b> para confirmar
+        </label>
+        <input
+          id="dangerInput"
+          type="text"
+          placeholder="Escribe BORRAR"
+          class="manual-input"
+          autocomplete="off"
+        />
+      </div>
 
-let currentAttendee = null;
+      <button id="dangerConfirm" class="btn btn-danger" style="margin-top:14px;" disabled>
+        Confirmar borrado
+      </button>
+      <button id="dangerCancel" class="btn btn-ghost" style="margin-top:10px;">
+        Cancelar
+      </button>
+    </div>
+  </div>
 
-function openModal(att, state){
-  currentAttendee = att || null;
-
-  mStatusOk.classList.add("hidden");
-  mStatusBad.classList.add("hidden");
-
-  if(state === "notfound"){
-    mAvatar.src = PLACEHOLDER_AVATAR;
-    mName.textContent = "No encontrado";
-    mCat.textContent = "—";
-    mStatusBad.classList.remove("hidden");
-    btnRegister.classList.add("hidden");
-    btnAlready.classList.add("hidden");
-    mMsg.textContent = "Este código no existe en el registro.";
-    modalBackdrop.style.display = "flex";
-    return;
-  }
-
-  mAvatar.src = att.photo || PLACEHOLDER_AVATAR;
-  mName.textContent = att.name || "—";
-  mCat.textContent = att.category || "—";
-
-  const dupGlobal = !!att.checked_in;
-  const dupLocal = alreadyLocal(att.code);
-  const dup = dupGlobal || dupLocal;
-
-  if(dupGlobal) mStatusOk.classList.remove("hidden");
-
-  btnRegister.classList.toggle("hidden", dup);
-  btnAlready.classList.toggle("hidden", !dup);
-
-  if(dupGlobal){
-    mMsg.textContent = "✅ Ya ingresó" + (att.checked_at ? (" · " + att.checked_at) : "");
-  } else if(dupLocal){
-    mMsg.textContent = "✅ Ya registrado en este teléfono.";
-  } else {
-    mMsg.textContent = "";
-  }
-
-  modalBackdrop.style.display = "flex";
-}
-
-function closeModal(){ modalBackdrop.style.display = "none"; currentAttendee = null; }
-
-modalClose.onclick = closeModal;
-modalBackdrop.onclick = (e)=>{ if(e.target === modalBackdrop) closeModal(); };
-btnAlready.onclick = ()=>{ closeModal(); setActiveTab("history"); };
-
-btnRegister.onclick = async ()=>{
-  if(!currentAttendee) return;
-  btnRegister.disabled = true;
-  mMsg.textContent = "Registrando...";
-
-  try{
-    const res = await apiCheckin(currentAttendee.code);
-
-    if(res?.ok && res?.status === "duplicate"){
-      mStatusOk.classList.remove("hidden");
-      mMsg.textContent = "✅ Ya ingresó (duplicado).";
-      btnRegister.classList.add("hidden");
-      btnAlready.classList.remove("hidden");
-      return;
-    }
-
-    addLocal(currentAttendee);
-    mMsg.textContent = "✅ Entrada registrada.";
-    btnRegister.classList.add("hidden");
-    btnAlready.classList.remove("hidden");
-    setTimeout(closeModal, 700);
-  }catch(err){
-    console.error(err);
-    mMsg.textContent = "❌ Error registrando (revisa conexión).";
-  }finally{
-    btnRegister.disabled = false;
-  }
-};
-
-// Scanner
-const btnStart = document.getElementById("btnStart");
-const btnStop = document.getElementById("btnStop");
-const scanIdle = document.getElementById("scanIdle");
-const scanLive = document.getElementById("scanLive");
-const camStatus = document.getElementById("camStatus");
-
-let html5Qr = null;
-let scanning = false;
-let scanLock = false;
-let lastScan = "";
-let lastScanAt = 0;
-
-btnStart.onclick = startScanner;
-btnStop.onclick = stopScanner;
-
-async function startScanner(){
-  if(scanning) return;
-  if(!API_URL || API_URL.includes("PON_AQUI_TU_URL")){
-    alert("Te falta pegar tu URL del Web App (Apps Script) en API_URL.");
-    return;
-  }
-
-  scanning = true;
-  camStatus.textContent = "";
-
-  scanIdle.classList.add("hidden");
-  scanLive.classList.remove("hidden");
-  btnStart.classList.add("hidden");
-  btnStop.classList.remove("hidden");
-
-  try{
-    html5Qr = new Html5Qrcode("reader", { formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ] });
-  } catch {
-    html5Qr = new Html5Qrcode("reader");
-  }
-
-  try{
-    camStatus.textContent = "Cámara lista ✔ Escaneando...";
-    await html5Qr.start(
-      { facingMode:"environment" },
-      { fps: 10, qrbox: { width: 220, height: 220 } },
-      (decodedText)=>handleScan(decodedText),
-      ()=>{}
-    );
-  }catch(err){
-    scanning = false;
-    camStatus.textContent = "❌ Cámara bloqueada: " + (err?.message || err);
-    alert("No se pudo abrir la cámara. Abre en Chrome/Safari y permite permisos.");
-    await safeStop_();
-  }
-}
-
-async function stopScanner(){
-  scanning = false;
-  camStatus.textContent = "";
-  await safeStop_();
-}
-
-async function safeStop_(){
-  try{
-    if(html5Qr){
-      await html5Qr.stop();
-      await html5Qr.clear();
-    }
-  }catch(e){}
-  html5Qr = null;
-
-  btnStart.classList.remove("hidden");
-  btnStop.classList.add("hidden");
-  scanLive.classList.add("hidden");
-  scanIdle.classList.remove("hidden");
-}
-
-async function handleScan(text){
-  const now = Date.now();
-  const code = String(text).trim();
-
-  if(code === lastScan && (now - lastScanAt) < 1500) return;
-  lastScan = code; lastScanAt = now;
-  if(scanLock) return;
-  scanLock = true;
-
-  try{
-    const data = await apiLookup(code);
-    if(!data || !data.ok){
-      openModal(null, "notfound");
-      return;
-    }
-    openModal({
-      code: data.code || code,
-      name: data.name || "",
-      category: data.category || "",
-      photo: toDriveDirectUrl(data.photo || ""),
-      checked_in: !!data.checked_in,
-      checked_at: data.checked_at || ""
-    });
-  }catch(err){
-    console.error(err);
-    alert("Error conectando al backend. Revisa el Web App y permisos.");
-  }finally{
-    setTimeout(()=>{ scanLock = false; }, 900);
-  }
-}
-
-// init
-setActiveTab("scan");
-</script>
-
+  <script src="./js/config.js"></script>
+  <script src="./js/mock-data.js"></script>
+  <script src="./js/storage.js"></script>
+  <script src="./js/ui.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/scanner.js"></script>
+  <script src="./js/app.js"></script>
 </body>
 </html>
