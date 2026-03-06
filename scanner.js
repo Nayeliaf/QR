@@ -5,6 +5,20 @@
   let lastScan = "";
   let lastScanAt = 0;
 
+  async function getBestCameraId() {
+    const devices = await Html5Qrcode.getCameras();
+
+    if (!devices || !devices.length) {
+      throw new Error("No se encontraron cámaras.");
+    }
+
+    const backCam =
+      devices.find(d => /back|rear|environment|trasera/i.test(d.label)) ||
+      devices[devices.length - 1];
+
+    return backCam.id;
+  }
+
   async function start(onDetected, onStatus) {
     if (scanning) return;
     scanning = true;
@@ -18,10 +32,19 @@
     }
 
     try {
+      onStatus("Solicitando acceso a la cámara...");
+
+      const cameraId = await getBestCameraId();
+
       onStatus("Cámara lista ✔ Escaneando...");
+
       await html5Qr.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 220, height: 220 } },
+        cameraId,
+        {
+          fps: 10,
+          qrbox: { width: 220, height: 220 },
+          aspectRatio: 1.333333
+        },
         async (decodedText) => {
           const now = Date.now();
           const code = String(decodedText).trim();
@@ -36,14 +59,16 @@
           try {
             await onDetected(code);
           } finally {
-            setTimeout(() => { scanLock = false; }, 900);
+            setTimeout(() => {
+              scanLock = false;
+            }, 900);
           }
         },
         () => {}
       );
     } catch (err) {
       scanning = false;
-      onStatus("❌ Cámara bloqueada");
+      onStatus("❌ No se pudo abrir la cámara");
       throw err;
     }
   }
