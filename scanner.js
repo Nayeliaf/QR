@@ -5,11 +5,37 @@
   let lastScan = "";
   let lastScanAt = 0;
 
+  async function probeCameraAccess(onStatus) {
+    if (!window.isSecureContext) {
+      throw new Error("SECURE_CONTEXT_REQUIRED");
+    }
+
+    if (!navigator.mediaDevices) {
+      throw new Error("MEDIA_DEVICES_UNAVAILABLE");
+    }
+
+    if (!navigator.mediaDevices.getUserMedia) {
+      throw new Error("GET_USER_MEDIA_UNAVAILABLE");
+    }
+
+    onStatus("Solicitando permiso de cámara...");
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false
+    });
+
+    const tracks = stream.getTracks();
+    tracks.forEach(track => track.stop());
+
+    onStatus("Permiso concedido. Buscando cámara...");
+  }
+
   async function getBestCameraId() {
     const devices = await Html5Qrcode.getCameras();
 
     if (!devices || !devices.length) {
-      throw new Error("No se encontraron cámaras.");
+      throw new Error("NO_CAMERAS_FOUND");
     }
 
     const backCam =
@@ -24,15 +50,15 @@
     scanning = true;
 
     try {
-      html5Qr = new Html5Qrcode("reader", {
-        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
-      });
-    } catch {
-      html5Qr = new Html5Qrcode("reader");
-    }
+      await probeCameraAccess(onStatus);
 
-    try {
-      onStatus("Solicitando acceso a la cámara...");
+      try {
+        html5Qr = new Html5Qrcode("reader", {
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
+        });
+      } catch {
+        html5Qr = new Html5Qrcode("reader");
+      }
 
       const cameraId = await getBestCameraId();
 
@@ -68,7 +94,6 @@
       );
     } catch (err) {
       scanning = false;
-      onStatus("❌ No se pudo abrir la cámara");
       throw err;
     }
   }

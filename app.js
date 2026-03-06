@@ -194,6 +194,37 @@
     camStatus.textContent = "Historial local borrado correctamente.";
   }
 
+  function explainCameraError(err) {
+    const msg = String(err?.message || err || "");
+
+    if (msg.includes("SECURE_CONTEXT_REQUIRED")) {
+      return "❌ La cámara requiere HTTPS o localhost.";
+    }
+    if (msg.includes("MEDIA_DEVICES_UNAVAILABLE")) {
+      return "❌ Este navegador no expone mediaDevices.";
+    }
+    if (msg.includes("GET_USER_MEDIA_UNAVAILABLE")) {
+      return "❌ Este navegador no soporta getUserMedia.";
+    }
+    if (msg.includes("NO_CAMERAS_FOUND")) {
+      return "❌ No se encontró ninguna cámara disponible.";
+    }
+    if (msg.toLowerCase().includes("notallowed")) {
+      return "❌ Permiso de cámara denegado.";
+    }
+    if (msg.toLowerCase().includes("permission")) {
+      return "❌ Permiso de cámara bloqueado.";
+    }
+    if (msg.toLowerCase().includes("notreadable")) {
+      return "❌ La cámara está en uso por otra app.";
+    }
+    if (msg.toLowerCase().includes("overconstrained")) {
+      return "❌ No se pudo usar esa cámara del dispositivo.";
+    }
+
+    return `❌ Error de cámara: ${msg || "desconocido"}`;
+  }
+
   async function startScannerUI() {
     scannerActive = true;
     scanIdle.classList.add("hidden");
@@ -207,18 +238,7 @@
         camStatus.textContent = msg;
       });
     } catch (err) {
-      const msg = String(err?.message || err || "");
-
-      if (msg.toLowerCase().includes("permission")) {
-        camStatus.textContent = "❌ Permiso de cámara denegado.";
-      } else if (msg.toLowerCase().includes("secure")) {
-        camStatus.textContent = "❌ La cámara necesita localhost o HTTPS.";
-      } else if (msg.toLowerCase().includes("notfound")) {
-        camStatus.textContent = "❌ No se encontró ninguna cámara.";
-      } else {
-        camStatus.textContent = "❌ No se pudo abrir la cámara.";
-      }
-
+      camStatus.textContent = explainCameraError(err);
       await stopScannerUI(false);
     }
   }
