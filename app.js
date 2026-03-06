@@ -49,9 +49,11 @@
   const brandTitle = document.getElementById("brandTitle");
   const brandSubtitle = document.getElementById("brandSubtitle");
   const aboutVersion = document.getElementById("aboutVersion");
+  const scanFlash = document.getElementById("scanFlash");
 
   let currentAttendee = null;
   let scannerActive = false;
+  let beepAudioCtx = null;
 
   brandTitle.textContent = config.appName;
   brandSubtitle.textContent = config.subtitle;
@@ -102,48 +104,115 @@
     }
   }
 
-  function openModal(att, state) {
-    currentAttendee = att || null;
+  function resetModalStates() {
     mStatusOk.classList.add("hidden");
     mStatusBad.classList.add("hidden");
+    btnRegister.classList.add("hidden");
+    btnAlready.classList.add("hidden");
+    mMsg.textContent = "";
+  }
+
+  function flashScreen(type) {
+    if (!scanFlash) return;
+    scanFlash.className = "scan-flash";
+    scanFlash.classList.add(type === "ok" ? "ok" : "bad");
+    scanFlash.classList.add("show");
+    setTimeout(() => scanFlash.classList.remove("show"), 220);
+  }
+
+  function vibratePattern(type) {
+    if (!("vibrate" in navigator)) return;
+    if (type === "ok") {
+      navigator.vibrate([80]);
+    } else {
+      navigator.vibrate([80, 60, 80]);
+    }
+  }
+
+  function beep(type) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+
+      if (!beepAudioCtx) beepAudioCtx = new AudioCtx();
+
+      const ctx = beepAudioCtx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.value = type === "ok" ? 880 : 280;
+
+      gain.gain.setValueAtTime(0.001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (type === "ok" ? 0.12 : 0.2));
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + (type === "ok" ? 0.13 : 0.21));
+    } catch {}
+  }
+
+  function proFeedback(type) {
+    flashScreen(type);
+    vibratePattern(type);
+    beep(type);
+  }
+
+  function openModal(att, state) {
+    currentAttendee = att || null;
+    resetModalStates();
 
     if (state === "notfound") {
       mAvatar.src = ui.PLACEHOLDER_AVATAR;
-      mName.textContent = "No encontrado";
+      mAvatar.onerror = null;
+      mName.textContent = "No se encontró";
       mCat.textContent = "—";
       mCode.textContent = "Código no válido";
+      mStatusBad.textContent = "❌ No se encontró";
       mStatusBad.classList.remove("hidden");
-      btnRegister.classList.add("hidden");
-      btnAlready.classList.add("hidden");
-      mMsg.textContent = "Este código no existe en el registro.";
+      mMsg.textContent = "Ese código no existe en el registro.";
+      proFeedback("bad");
       modalBackdrop.style.display = "flex";
       return;
     }
 
     mAvatar.src = ui.toDriveDirectUrl(att.photo) || ui.PLACEHOLDER_AVATAR;
+    mAvatar.onerror = function () {
+      this.onerror = null;
+      this.src = ui.PLACEHOLDER_AVATAR;
+    };
+
     mName.textContent = att.name || "—";
     mCat.textContent = att.category || "—";
     mCode.textContent = att.code || "—";
 
     const dupGlobal = !!att.checked_in;
     const dupLocal = storage.alreadyLocal(att.code);
-    const dup = dupGlobal || dupLocal;
 
     if (dupGlobal) {
+      mStatusOk.textContent = "✅ Ya ingresó";
       mStatusOk.classList.remove("hidden");
+      btnAlready.classList.remove("hidden");
+      mMsg.textContent = `Ya ingresó · ${ui.fmt(att.checked_at) || att.checked_at || ""}`;
+      proFeedback("ok");
+      modalBackdrop.style.display = "flex";
+      return;
     }
 
-    btnRegister.classList.toggle("hidden", dup);
-    btnAlready.classList.toggle("hidden", !dup);
-
-    if (dupGlobal) {
-      mMsg.textContent = "✅ Ya ingresó" + (att.checked_at ? (" · " + att.checked_at) : "");
-    } else if (dupLocal) {
-      mMsg.textContent = "✅ Ya registrado en este teléfono.";
-    } else {
-      mMsg.textContent = "";
+    if (dupLocal) {
+      mStatusOk.textContent = "✅ Ya registrado";
+      mStatusOk.classList.remove("hidden");
+      btnAlready.classList.remove("hidden");
+      mMsg.textContent = "Ya registrado en este teléfono.";
+      proFeedback("ok");
+      modalBackdrop.style.display = "flex";
+      return;
     }
 
+    btnRegister.classList.remove("hidden");
+    proFeedback("ok");
     modalBackdrop.style.display = "flex";
   }
 
@@ -280,25 +349,35 @@
       const res = await api.checkin(currentAttendee.code);
 
       if (res?.ok && res?.status === "duplicate") {
+        resetModalStates();
+        mStatusOk.textContent = "✅ Ya ingresó";
         mStatusOk.classList.remove("hidden");
-        mMsg.textContent = "✅ Ya ingresó (duplicado).";
-        btnRegister.classList.add("hidden");
         btnAlready.classList.remove("hidden");
+        mMsg.textContent = `Ya ingresó · ${ui.fmt(res.checked_at) || res.checked_at || ""}`;
+        proFeedback("ok");
         return;
       }
 
       if (res?.ok) {
+        currentAttendee.checked_in = true;
+        currentAttendee.checked_at = res.checked_at || "";
         storage.addLocal(currentAttendee);
-        mMsg.textContent = "✅ Entrada registrada.";
-        btnRegister.classList.add("hidden");
+
+        resetModalStates();
+        mStatusOk.textContent = "✅ Entrada registrada";
+        mStatusOk.classList.remove("hidden");
         btnAlready.classList.remove("hidden");
-        setTimeout(closeModal, 700);
+        mMsg.textContent = `Entrada registrada · ${ui.fmt(res.checked_at) || res.checked_at || ""}`;
+        proFeedback("ok");
+        setTimeout(closeModal, 900);
         return;
       }
 
       mMsg.textContent = "❌ No se pudo registrar.";
+      proFeedback("bad");
     } catch {
       mMsg.textContent = "❌ Error registrando.";
+      proFeedback("bad");
     } finally {
       btnRegister.disabled = false;
     }

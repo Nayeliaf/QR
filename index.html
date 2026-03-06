@@ -318,10 +318,9 @@
     }
 
     .hidden{
-      display:none;
+      display:none !important;
     }
 
-    /* ===== VISOR QR CORREGIDO ===== */
     #reader{
       width:100%;
       min-height:260px;
@@ -349,23 +348,19 @@
       border-radius:18px !important;
     }
 
-    /* ocultar canvas duplicado */
     #reader canvas{
       display:none !important;
     }
 
-    /* ocultar overlays raros */
     #reader__scan_region img,
     #reader__scan_region svg{
       display:none !important;
     }
 
-    /* ocultar dashboard interno */
     #reader__dashboard{
       display:none !important;
     }
 
-    /* limpiar wrappers internos */
     #reader > div{
       padding:0 !important;
       border:none !important;
@@ -439,6 +434,27 @@
 
     .danger-copy .name{
       font-size:24px;
+    }
+
+    .scan-flash{
+      position:fixed;
+      inset:0;
+      z-index:500;
+      pointer-events:none;
+      opacity:0;
+      transition:opacity .18s ease;
+    }
+
+    .scan-flash.show{
+      opacity:1;
+    }
+
+    .scan-flash.ok{
+      background:rgba(31,181,106,.22);
+    }
+
+    .scan-flash.bad{
+      background:rgba(229,72,72,.22);
     }
   </style>
 </head>
@@ -531,8 +547,8 @@
         <div class="badge" id="mCat">—</div>
         <div class="tiny" id="mCode">—</div>
 
-        <div id="mStatusOk" class="status-ok hidden">✅ Ya ingresó</div>
-        <div id="mStatusBad" class="status-bad hidden">❌ No encontrado</div>
+        <div id="mStatusOk" class="status-ok hidden"></div>
+        <div id="mStatusBad" class="status-bad hidden"></div>
       </div>
 
       <button id="btnRegister" class="btn btn-success">Registrar Entrada</button>
@@ -577,6 +593,8 @@
       </button>
     </div>
   </div>
+
+  <div id="scanFlash" class="scan-flash"></div>
 
   <script src="./config.js"></script>
   <script src="./mock-data.js"></script>

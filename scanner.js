@@ -48,8 +48,6 @@
 
   function getQrBoxSize(viewfinderWidth, viewfinderHeight) {
     const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-
-    // cuadro adaptable
     const edge = Math.floor(minEdge * 0.7);
 
     return {
@@ -118,7 +116,6 @@
         () => {}
       );
 
-      // fuerza ajuste visual del video/canvas interno
       setTimeout(forceReaderLayout, 100);
       setTimeout(forceReaderLayout, 400);
       setTimeout(forceReaderLayout, 900);
