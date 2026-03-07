@@ -11,7 +11,7 @@
           code: data.attendee.code || fallbackCode,
           name: data.attendee.name || "",
           category: data.attendee.category || "",
-          photo: data.attendee.photo || "",
+          photo: data.attendee.photo ? String(data.attendee.photo).trim() : "",
           checked_in: !!data.attendee.checked_in,
           checked_at: data.attendee.checked_at || ""
         }
@@ -24,7 +24,7 @@
         code: data.code || fallbackCode,
         name: data.name || "",
         category: data.category || "",
-        photo: data.photo || "",
+        photo: data.photo ? String(data.photo).trim() : "",
         checked_in: !!data.checked_in,
         checked_at: data.checked_at || ""
       }
@@ -75,16 +75,28 @@
 
   async function liveLookup(code) {
     const url = `${apiUrl}?action=lookup&code=${encodeURIComponent(code)}`;
+
     const res = await fetch(url);
+
+    if (!res.ok) {
+      return { ok: false, error: "NETWORK_ERROR" };
+    }
+
     const data = await res.json();
     return normalizeLookupResponse(data, code);
   }
 
   async function liveCheckin(code) {
-    const body = new URLSearchParams({ action: "checkin", code });
+    const body = new URLSearchParams({
+      action: "checkin",
+      code
+    });
+
     const res = await fetch(apiUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+      },
       body
     });
 

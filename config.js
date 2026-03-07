@@ -3,6 +3,6 @@ window.APP_CONFIG = {
   eventName: "AKUAI",
   subtitle: "Escaneo · Registro de entrada",
   version: "1.0",
-  apiUrl: "https://script.google.com/macros/s/AKfycbxXygzI6FNUwWuDz4JtzKrl0F5L31lWkVVPFjcgPDn_bcxxiCdO5Iy5j9szIV_k4Q9U4w/exec",
+  apiUrl: "https://script.google.com/macros/s/AKfycbyFXEHSPZZwUkv6kbQyRgdS3LGYH_sgTsTzUrJMycuG9OIj7QwOKJo7FjwdXT8htQ66-Q/exec",
   useMock: false
 };

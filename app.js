@@ -160,13 +160,27 @@
     beep(type);
   }
 
+  function setAvatar(src) {
+    const finalSrc = src ? String(src).trim() : "";
+
+    mAvatar.onerror = function () {
+      this.onerror = null;
+      this.src = ui.PLACEHOLDER_AVATAR;
+    };
+
+    mAvatar.removeAttribute("src");
+
+    setTimeout(() => {
+      mAvatar.src = finalSrc || ui.PLACEHOLDER_AVATAR;
+    }, 30);
+  }
+
   function openModal(att, state) {
     currentAttendee = att || null;
     resetModalStates();
 
     if (state === "notfound") {
-      mAvatar.src = ui.PLACEHOLDER_AVATAR;
-      mAvatar.onerror = null;
+      setAvatar(ui.PLACEHOLDER_AVATAR);
       mName.textContent = "No se encontró";
       mCat.textContent = "—";
       mCode.textContent = "Código no válido";
@@ -178,11 +192,8 @@
       return;
     }
 
-    mAvatar.src = ui.toDriveDirectUrl(att.photo) || ui.PLACEHOLDER_AVATAR;
-    mAvatar.onerror = function () {
-      this.onerror = null;
-      this.src = ui.PLACEHOLDER_AVATAR;
-    };
+    const photoUrl = ui.toDriveDirectUrl(att.photo);
+    setAvatar(photoUrl);
 
     mName.textContent = att.name || "—";
     mCat.textContent = att.category || "—";
