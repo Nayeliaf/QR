@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>AKUAI | Check-in</title>
 
+  <meta name="theme-color" content="#E07A1F" />
+  <meta name="description" content="AKUAI Check-in para registro de entrada en eventos" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Playfair+Display:wght@700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
 
   <style>
@@ -604,5 +609,13 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
   <script src="./scanner.js"></script>
   <script src="./app.js"></script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>
