@@ -48,7 +48,8 @@
 
   function getQrBoxSize(viewfinderWidth, viewfinderHeight) {
     const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-    const edge = Math.floor(minEdge * 0.7);
+
+    const edge = Math.floor(minEdge * 0.82);
 
     return {
       width: edge,
@@ -59,6 +60,7 @@
   async function start(onDetected, onStatus) {
     if (scanning) return;
     scanning = true;
+    scanLock = false;
 
     try {
       await probeCameraAccess(onStatus);
@@ -87,19 +89,20 @@
       await html5Qr.start(
         cameraId,
         {
-          fps: 10,
-          aspectRatio: 1,
+          fps: 18,
           qrbox: (viewfinderWidth, viewfinderHeight) =>
             getQrBoxSize(viewfinderWidth, viewfinderHeight),
-          disableFlip: false
+          disableFlip: true,
+          aspectRatio: 1
         },
         async (decodedText) => {
           const now = Date.now();
-          const code = String(decodedText).trim();
+          const code = String(decodedText || "").trim();
 
+          if (!scanning) return;
           if (!code) return;
-          if (code === lastScan && (now - lastScanAt) < 1500) return;
           if (scanLock) return;
+          if (code === lastScan && (now - lastScanAt) < 2200) return;
 
           lastScan = code;
           lastScanAt = now;
@@ -110,15 +113,15 @@
           } finally {
             setTimeout(() => {
               scanLock = false;
-            }, 900);
+            }, 1200);
           }
         },
         () => {}
       );
 
-      setTimeout(forceReaderLayout, 100);
-      setTimeout(forceReaderLayout, 400);
-      setTimeout(forceReaderLayout, 900);
+      setTimeout(forceReaderLayout, 80);
+      setTimeout(forceReaderLayout, 260);
+      setTimeout(forceReaderLayout, 700);
 
     } catch (err) {
       scanning = false;
@@ -128,10 +131,16 @@
 
   async function stop() {
     scanning = false;
+    scanLock = false;
 
     try {
       if (html5Qr) {
-        await html5Qr.stop();
+        const state = typeof html5Qr.getState === "function" ? html5Qr.getState() : null;
+
+        if (state === 2 || state === 3 || state === "SCANNING" || state === "PAUSED") {
+          await html5Qr.stop();
+        }
+
         await html5Qr.clear();
       }
     } catch {}

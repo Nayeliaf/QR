@@ -54,6 +54,7 @@
   let currentAttendee = null;
   let scannerActive = false;
   let beepAudioCtx = null;
+  let handlingScan = false;
 
   brandTitle.textContent = config.appName;
   brandSubtitle.textContent = config.subtitle;
@@ -306,7 +307,10 @@
   }
 
   async function startScannerUI() {
+    if (scannerActive) return;
+
     scannerActive = true;
+    handlingScan = false;
     scanIdle.classList.add("hidden");
     scanLive.classList.remove("hidden");
     btnStart.classList.add("hidden");
@@ -325,10 +329,13 @@
 
   async function stopScannerUI(clearMessage = true) {
     scannerActive = false;
+
     if (clearMessage) {
       camStatus.textContent = "";
     }
+
     await qrScanner.stop();
+
     btnStart.classList.remove("hidden");
     btnStop.classList.add("hidden");
     scanLive.classList.add("hidden");
@@ -336,7 +343,13 @@
   }
 
   async function handleScan(code) {
+    if (handlingScan) return;
+    handlingScan = true;
+
     try {
+      camStatus.textContent = "QR detectado ✔ Procesando...";
+      await stopScannerUI(false);
+
       const data = await api.lookup(code);
 
       if (!data || !data.ok || !data.attendee) {
@@ -347,6 +360,8 @@
       openModal(data.attendee);
     } catch {
       openModal(null, "notfound");
+    } finally {
+      handlingScan = false;
     }
   }
 
